@@ -936,6 +936,44 @@
       },
       "Instructions": [
         {
+          "$Comment": "LivingWorld : prédateur affamé en combat avec de la viande au sol à portée (typiquement sa proie vient de mourir) → quitte le combat et file manger sans attendre que l'état Combat vanilla relâche la main.",
+          "Sensor": {
+            "Type": "And",
+            "Sensors": [
+              {
+                "Type": "LivingWorld_Hungry",
+                "Diet": "Carnivore",
+                "Threshold": {
+                  "Compute": "LivingWorldHungerThreshold"
+                }
+              },
+              {
+                "Type": "DroppedItem",
+                "Range": {
+                  "Compute": "LivingWorldMeatSearchRange"
+                },
+                "Items": [
+                  "Food_Wildmeat_Raw",
+                  "Food_Beef_Raw",
+                  "Food_Pork_Raw",
+                  "Food_Chicken_Raw",
+                  "Food_Fish_Raw*"
+                ]
+              }
+            ]
+          },
+          "Actions": [
+            {
+              "Type": "LivingWorld_NeedsEvent",
+              "Event": "SmellMeat"
+            },
+            {
+              "Type": "State",
+              "State": ".LivingWorldScavenge"
+            }
+          ]
+        },
+        {
           "$Comment": "Check whether the target should be swapped for a closer one",
           "Reference": "Component_Instruction_Combat_Target_Swap",
           "Modify": {

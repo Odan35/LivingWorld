@@ -228,6 +228,17 @@ const scavengeEntry = {
   Actions: [event('SmellMeat'), state('.LivingWorldScavenge')]
 };
 
+// Inséré en tête de l'état Combat vanilla : dès que la proie meurt et laisse tomber la viande,
+// le prédateur affamé sort immédiatement du Combat pour aller la manger. Sans ça, l'état Combat
+// a sa propre séquence de sortie et on observait ~8 s entre la mise à mort et le « repère de la
+// viande » qu'il venait pourtant lui-même de faire tomber (scavengeEntry n'est évalué qu'une fois
+// Idle repris).
+const scavengeFromCombat = {
+  $Comment: 'LivingWorld : prédateur affamé en combat avec de la viande au sol à portée (typiquement sa proie vient de mourir) → quitte le combat et file manger sans attendre que l\'état Combat vanilla relâche la main.',
+  Sensor: { Type: 'And', Sensors: [hungry('Carnivore'), { ...meat(0), Range: { Compute: 'LivingWorldMeatSearchRange' } }] },
+  Actions: [event('SmellMeat'), state('.LivingWorldScavenge')]
+};
+
 const hunt = (diet, groups) => ({
   $Comment: `LivingWorld : ${diet} affamé avec une proie (${groups.join('/')}) à portée → attaque immédiate. Placé avant la détection standard, qui ne ferait que passer en Alerted (les proies sont Neutral pour les prédateurs). Une fois la proie tuée, il mange la viande qu'elle lâche.`,
   Sensor: { Type: 'And', Sensors: [hungry(diet), mob('LivingWorldHuntRange', groups, true)] },
@@ -375,11 +386,13 @@ if (kind === 'herbivore') {
   addParameters(carnivoreParams);
   const after = insertBeforeObjectContaining('"$Comment": "Check if there are any potential threats nearby"', CARNIVORE_FIRST, find(IDLE));
   insertBeforeObjectContaining(LEASH, CARNIVORE_ROAM, after);
+  insertAtInstructionsStart('"State": "Combat"\n          },\n          "Instructions"', [scavengeFromCombat]);
   insertAtInstructionsStart(SLEEP, [wakeCarnivore]);
 } else if (kind === 'spider') {
   addParameters(carnivoreParams);
   const after = insertBeforeObjectContaining('"$Comment": "Generic detection: sight, sound, beacons and damage"', CARNIVORE_FIRST);
   insertBeforeObjectContaining(LEASH, CARNIVORE_ROAM, after);
+  insertAtInstructionsStart('"State": "Combat"\n      },\n      "Instructions"', [scavengeFromCombat]);
 } else {
   throw new Error('Type inconnu : ' + kind);
 }
