@@ -90,7 +90,19 @@ tasks.named('processResources') {
     dependsOn 'updatePluginManifest'
 }
 
+// Only bundle the plugin's own dependencies. The default runtimeClasspath also
+// contains the server jar added as runtimeOnly above (for IDE run configs),
+// which would otherwise be shaded into the plugin jar.
+configurations {
+    bundled {
+        extendsFrom implementation
+        canBeConsumed = false
+        canBeResolved = true
+    }
+}
+
 tasks.named('shadowJar') {
+    configurations = [project.configurations.bundled]
     archiveClassifier.set('')
     mergeServiceFiles()
 }

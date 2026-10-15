@@ -2,7 +2,7 @@
     "Group": "com.odan",
     "Name": "LivingWorld",
     "Version": "0.1.0",
-    "Description": "Simulation des besoins (faim, fatigue) des PNJ, y compris hors des chunks chargés.",
+    "Description": "Simulation des besoins (faim, fatigue) des PNJ, y compris hors des chunks charg\u00e9s.",
     "Authors": [
         {
             "Name": "Odan"
@@ -10,13 +10,13 @@
     ],
     "ServerVersion": ">=0.7.2 <0.8.0",
     "Dependencies": {
-        "Hytale:NPCPlugin": "*",
+        "Hytale:NPC": "*",
         "Hytale:TimeModule": "*"
     },
     "OptionalDependencies": {
-
+        
     },
     "DisabledByDefault": false,
     "Main": "com.odan.livingworld.LivingWorldPlugin",
-    "IncludesAssetPack": false
+    "IncludesAssetPack": true
 }

@@ -1,0 +1,9 @@
+{
+  "$Comment": "LivingWorld : blocs qu'un herbivore affamé recherche (herbes hautes, fleurs, cultures, foin).",
+  "IncludeBlockTypes": [
+    "Plant_Grass*",
+    "Plant_Flower*",
+    "Plant_Crop_*",
+    "*Hay*"
+  ]
+}

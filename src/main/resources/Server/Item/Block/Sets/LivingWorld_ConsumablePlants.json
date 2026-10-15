@@ -1,0 +1,8 @@
+{
+  "$Comment": "LivingWorld : blocs qui disparaissent une fois mangés. Le foin et le sol ne sont pas consommés.",
+  "IncludeBlockTypes": [
+    "Plant_Grass*",
+    "Plant_Flower*",
+    "Plant_Crop_*"
+  ]
+}
