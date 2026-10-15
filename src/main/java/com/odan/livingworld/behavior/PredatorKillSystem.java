@@ -45,6 +45,14 @@ public class PredatorKillSystem extends RefChangeSystem<EntityStore, DeathCompon
             || !DietClassifier.classify(killerNpc.getRoleIndex(), killerNpc.getRoleName()).isCarnivore()) {
             return;
         }
+        // Ne logger que les vraies proies (Prey/PreyBig = herbivores). Les combats hors chasse
+        // (prédateur vs prédateur, araignée vs squelette...) ne font pas tomber de viande
+        // au sens LivingWorld et le message « la viande tombera au sol » serait trompeur.
+        NPCEntity victimNpc = store.getComponent(victim, NPCEntity.getComponentType());
+        if (victimNpc == null
+            || !DietClassifier.classify(victimNpc.getRoleIndex(), victimNpc.getRoleName()).isHerbivore()) {
+            return;
+        }
         LOGGER.atInfo().log("PredatorKillSystem : %s a tué %s, la viande tombera au sol",
             EntityLabels.of(killer, store), EntityLabels.of(victim, store));
     }

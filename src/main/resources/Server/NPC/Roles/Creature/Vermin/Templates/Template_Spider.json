@@ -152,10 +152,10 @@
           },
           "Instructions": [
             {
-              "$Comment": "LivingWorld : viande à portée → la mange (l'objet disparaît).",
+              "$Comment": "LivingWorld : viande à portée → la mange (l'objet disparaît). Portée élargie à 2.5 blocs : un gros prédateur (ours) est trop large pour s'approcher à moins de 1.6 blocs.",
               "Sensor": {
                 "Type": "DroppedItem",
-                "Range": 1.6,
+                "Range": 2.5,
                 "Items": [
                   "Food_Wildmeat_Raw",
                   "Food_Beef_Raw",
@@ -187,7 +187,7 @@
                 },
                 {
                   "Type": "PickUpItem",
-                  "Range": 2,
+                  "Range": 2.5,
                   "StorageTarget": "Destroy"
                 },
                 {
@@ -1508,7 +1508,7 @@
     "LivingWorldWakeThreshold": { "Value": 20, "Description": "LivingWorld : sous cette satiété, un prédateur endormi se réveille pour chasser." },
     "LivingWorldMeatSearchRange": { "Value": 24, "Description": "LivingWorld : distance à laquelle il repère de la viande au sol." },
     "LivingWorldMeatAmount": { "Value": 30, "Description": "LivingWorld : satiété regagnée par morceau de viande mangé." },
-    "LivingWorldHuntRange": { "Value": 20, "Description": "LivingWorld : distance à laquelle un prédateur affamé repère une proie et l'attaque." },
+    "LivingWorldHuntRange": { "Value": 26, "Description": "LivingWorld : distance à laquelle un prédateur affamé repère une proie et l'attaque. Doit rester > LivingWorldPredatorAlertRange (fuite des proies à 20 blocs) : sinon la proie fuit avant que la chasse ne démarre, le combat se termine en poursuite ratée, et le cycle recommence." },
     "LivingWorldScentRange": { "Value": 48, "Description": "LivingWorld : distance à laquelle il flaire une proie et remonte sa piste." },
     "LivingWorldProwlHeadingChange": { "Value": 35, "Description": "LivingWorld : changement de cap maximal (degrés) entre deux segments de patrouille. Faible = le prédateur garde sa direction et part loin de son spawn." },
     "LivingWorldProwlSpeed": { "Value": 0.45, "Description": "LivingWorld : vitesse relative en patrouille." },

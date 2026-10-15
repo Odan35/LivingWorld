@@ -62,10 +62,31 @@ public class ActionEat extends ActionBase {
         float before = needs.getHunger();
         needs.setHunger(before + amount);
         String eaten = consumeBlock ? consumeTargetBlock(sensorInfo, store) : null;
+        String sensorPos = describeSensorPosition(sensorInfo);
 
-        LOGGER.atInfo().log(String.format(Locale.ROOT, "NeedsBehavior : %s a fini de manger (satiété %.1f -> %.1f)%s",
-            EntityLabels.of(ref, store), before, needs.getHunger(), eaten != null ? ", " + eaten : ""));
+        LOGGER.atInfo().log(String.format(Locale.ROOT, "NeedsBehavior : %s a fini de manger (satiété %.1f -> %.1f)%s%s",
+            EntityLabels.of(ref, store), before, needs.getHunger(),
+            eaten != null ? ", " + eaten : "",
+            // Position de la viande (ou autre cible) pour les prédateurs : utile pour debug la chaîne scavenge.
+            // Si ConsumeBlock=true, la position du bloc est déjà incluse dans « eaten ».
+            (eaten == null && sensorPos != null) ? ", cible en " + sensorPos : ""));
         return true;
+    }
+
+    /**
+     * Position (x, y, z) du sensor de l'instruction, si celui-ci en expose une (Block, DroppedItem…).
+     * @return "x.x, y.y, z.z" ou null si non disponible
+     */
+    @Nullable
+    private static String describeSensorPosition(@Nullable InfoProvider sensorInfo) {
+        if (sensorInfo == null || !sensorInfo.hasPosition()) {
+            return null;
+        }
+        IPositionProvider p = sensorInfo.getPositionProvider();
+        if (p == null) {
+            return null;
+        }
+        return String.format(Locale.ROOT, "(%.1f, %.1f, %.1f)", p.getX(), p.getY(), p.getZ());
     }
 
     /**

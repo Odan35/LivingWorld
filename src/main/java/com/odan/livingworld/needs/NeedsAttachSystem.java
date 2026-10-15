@@ -16,6 +16,8 @@ import com.odan.livingworld.debug.NpcLabelSystem;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Garantit que chaque PNJ entre dans le store avec un NeedsComponent.
@@ -25,6 +27,11 @@ import java.time.Instant;
 public class NeedsAttachSystem extends HolderSystem<EntityStore> {
 
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
+
+    /** Compteur global des étiquettes de debug retirées depuis le démarrage du serveur. Les PNJ sont chargés
+     *  en rafale quand les chunks arrivent : au lieu de logger chaque retrait (311 WARN observés sur une session),
+     *  on cumule le total et on émet un WARN rate-limité toutes les 10s avec le running total. */
+    private static final AtomicLong REMOVED_LABELS = new AtomicLong();
 
     private final ComponentType<EntityStore, NeedsComponent> needsType;
 
@@ -58,8 +65,10 @@ public class NeedsAttachSystem extends HolderSystem<EntityStore> {
         if (nameplate != null && nameplate.getText() != null
             && nameplate.getText().startsWith(NpcLabelSystem.LABEL_PREFIX)) {
             holder.removeComponent(Nameplate.getComponentType());
-            LOGGER.atWarning().log("NeedsAttachSystem : étiquette de debug sauvegardée retirée de %s",
-                EntityLabels.of(holder));
+            long total = REMOVED_LABELS.incrementAndGet();
+            LOGGER.atWarning().atMostEvery(10, TimeUnit.SECONDS).log(
+                "NeedsAttachSystem : %d étiquettes de debug sauvegardées retirées depuis le démarrage. Désactivez /livingworld labels avant de quitter le monde pour éviter ce nettoyage.",
+                total);
         }
     }
 

@@ -42,25 +42,24 @@ const herbivoreParams = {
   LivingWorldConsumableBlockSet: param('LivingWorld_ConsumablePlants', 'blocs qui disparaissent une fois mangés.'),
   LivingWorldFoodSearchRange: param(32, 'distance de recherche des plantes quand il a faim (au lieu de sa ViewRange).'),
   LivingWorldForageSpeed: param(0.8, 'vitesse relative pour rejoindre une plante quand il a faim.'),
-  LivingWorldPredatorAlertRange: param(20, 'distance à laquelle il repère un prédateur et s\'enfuit.'),
+  LivingWorldPredatorAlertRange: param(20, 'distance à laquelle il repère un prédateur et s\'enfuit (première fuite).'),
+  LivingWorldPredatorCloseRange: param(10, 'tant qu\'il est en méfiance (après une fuite), il ne re-fuit un prédateur que s\'il repasse sous cette distance. Évite les fuites en boucle quand un prédateur traîne dans la zone.'),
   LivingWorldPredatorCautionRange: param(32, 'tant qu\'un prédateur est à moins de cette distance, il ne part pas chercher à manger.'),
-  LivingWorldFearDuration: param(['PT15S', 'PT25S'], 'après une fuite, durée pendant laquelle il ne cherche pas à manger.')
+  LivingWorldFearDuration: param(['PT15S', 'PT25S'], 'après une fuite, durée pendant laquelle il ne cherche pas à manger ni ne re-fuit (sauf si un prédateur passe sous LivingWorldPredatorCloseRange).')
 };
 
 // Random: false → la plante la plus proche (pas une au hasard, qui pouvait être du côté du prédateur).
 // Reserve: true → deux animaux du troupeau ne visent pas la même plante et ne se bousculent pas en mangeant.
 // Le sensor Block met sa cible en cache : elle est réinitialisée à chaque fuite (voir flee).
 const food = (range) => ({ Type: 'Block', Range: range, MaxHeight: 4, Blocks: { Compute: 'LivingWorldFoodBlockSet' }, Random: false, Reserve: true });
-const fearActive = {
-  Type: 'Not',
-  Sensor: {
-    Type: 'Or',
-    Sensors: [
-      { Type: 'Alarm', Name: 'LivingWorld_Fear', State: 'Unset' },
-      { Type: 'Alarm', Name: 'LivingWorld_Fear', State: 'Passed' }
-    ]
-  }
+const fearInactive = {
+  Type: 'Or',
+  Sensors: [
+    { Type: 'Alarm', Name: 'LivingWorld_Fear', State: 'Unset' },
+    { Type: 'Alarm', Name: 'LivingWorld_Fear', State: 'Passed' }
+  ]
 };
+const fearActive = { Type: 'Not', Sensor: fearInactive };
 // Prédateur dangereux pour ce régime à moins de range blocs (même règle que la fuite)
 const predatorNear = (range) => ({
   Type: 'Or',
@@ -71,12 +70,24 @@ const predatorNear = (range) => ({
 });
 
 const flee = (diet, groups, who) => ({
-  $Comment: `LivingWorld : ${who} repère un prédateur (${groups.join('/')}) jusqu'à LivingWorldPredatorAlertRange blocs → fuite immédiate. En vanilla les prédateurs sont Neutral pour les proies : elles les surveillent puis les ignorent, et ne fuient qu'au contact.`,
-  Sensor: { Type: 'And', Sensors: [dietIs(diet), mob('LivingWorldPredatorAlertRange', groups, true)] },
+  $Comment: `LivingWorld : ${who} repère un prédateur (${groups.join('/')}) → fuite immédiate. En vanilla les prédateurs sont Neutral pour les proies : elles les surveillent puis les ignorent, et ne fuient qu'au contact. Première fuite déclenchée à LivingWorldPredatorAlertRange blocs ; pendant la méfiance qui suit (LivingWorldFearDuration), la fuite n'est re-déclenchée que si un prédateur repasse sous LivingWorldPredatorCloseRange blocs — sinon la proie fuyait en boucle toutes les quelques secondes tant qu'un prédateur restait dans la zone.`,
+  Sensor: {
+    Type: 'And',
+    Sensors: [
+      dietIs(diet),
+      {
+        Type: 'Or',
+        Sensors: [
+          { $Comment: 'Première fuite : pas (ou plus) en méfiance.', Type: 'And', Sensors: [fearInactive, mob('LivingWorldPredatorAlertRange', groups, true)] },
+          { $Comment: 'En méfiance, mais un prédateur s\'est rapproché à moins de LivingWorldPredatorCloseRange : on re-fuit.', ...mob('LivingWorldPredatorCloseRange', groups, true) }
+        ]
+      }
+    ]
+  },
   Actions: [
     event('FleePredator'),
     { $Comment: 'Oublie la plante visée (souvent du côté du prédateur) : la prochaine recherche partira de l\'endroit où il s\'est réfugié.', Type: 'ResetBlockSensors' },
-    { $Comment: 'Ne cherche pas à manger pendant quelques secondes après la fuite.', Type: 'SetAlarm', Name: 'LivingWorld_Fear', DurationRange: { Compute: 'LivingWorldFearDuration' } },
+    { $Comment: 'Prolonge la méfiance (pas de maraude ni de re-fuite au-delà de LivingWorldPredatorCloseRange).', Type: 'SetAlarm', Name: 'LivingWorld_Fear', DurationRange: { Compute: 'LivingWorldFearDuration' } },
     state('Flee')
   ]
 });
@@ -170,7 +181,7 @@ const carnivoreParams = {
   LivingWorldWakeThreshold: param(20, 'sous cette satiété, un prédateur endormi se réveille pour chasser.'),
   LivingWorldMeatSearchRange: param(24, 'distance à laquelle il repère de la viande au sol.'),
   LivingWorldMeatAmount: param(30, 'satiété regagnée par morceau de viande mangé.'),
-  LivingWorldHuntRange: param(20, 'distance à laquelle un prédateur affamé repère une proie et l\'attaque.'),
+  LivingWorldHuntRange: param(26, 'distance à laquelle un prédateur affamé repère une proie et l\'attaque. Doit rester > LivingWorldPredatorAlertRange (fuite des proies à 20 blocs) : sinon la proie fuit avant que la chasse ne démarre, le combat se termine en poursuite ratée, et le cycle recommence.'),
   LivingWorldScentRange: param(48, 'distance à laquelle il flaire une proie et remonte sa piste.'),
   LivingWorldProwlHeadingChange: param(35, 'changement de cap maximal (degrés) entre deux segments de patrouille. Faible = le prédateur garde sa direction et part loin de son spawn.'),
   LivingWorldProwlSpeed: param(0.45, 'vitesse relative en patrouille.'),
@@ -182,15 +193,15 @@ const scavenge = {
   Sensor: stateIs('.LivingWorldScavenge'),
   Instructions: [
     {
-      $Comment: 'LivingWorld : viande à portée → la mange (l\'objet disparaît).',
-      Sensor: meat(1.6),
+      $Comment: 'LivingWorld : viande à portée → la mange (l\'objet disparaît). Portée élargie à 2.5 blocs : un gros prédateur (ours) est trop large pour s\'approcher à moins de 1.6 blocs.',
+      Sensor: meat(2.5),
       BodyMotion: { $Comment: 'Immobile pendant le repas.', Type: 'Nothing' },
       HeadMotion: { Type: 'Watch' },
       ActionsBlocking: true,
       Actions: [
         anim('Eat'),
         { Type: 'Timeout', Delay: [2, 3] },
-        { Type: 'PickUpItem', Range: 2, StorageTarget: 'Destroy' },
+        { Type: 'PickUpItem', Range: 2.5, StorageTarget: 'Destroy' },
         { Type: 'LivingWorld_Eat', Amount: { Compute: 'LivingWorldMeatAmount' } },
         anim(),
         state('.Default')
